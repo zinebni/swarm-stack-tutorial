@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  # ── Service Front-end / Reverse Proxy ──
+  frontend:
+    image: s3-frontend:v1
+    ports:
+      - "80:80"
+    networks:
+      - public
+      - internal
+
+  # ── Service API (Node.js) ──
+  api:
+    image: s3-api:v1
+    deploy:
+      replicas: 3
+    networks:
+      - internal
+
+  # ── Service Cache (Redis) ──
+  redis:
+    image: redis:7-alpine
+    networks:
+      - internal
+
+# ── Réseaux Overlay ──
+networks:
+  public:
+    driver: overlay
+  internal:
+    driver: overlay

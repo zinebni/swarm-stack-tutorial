@@ -1,0 +1,26 @@
+# ─────────────────────────────────────────────────────────────
+#  docker-compose.yml  —  Pour tester l'application LOCALEMENT
+#  (sans activer Docker Swarm)
+# ─────────────────────────────────────────────────────────────
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: ./api
+    environment:
+      - APP_ENV=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine

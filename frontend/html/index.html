@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🐳 Docker Swarm Demo</title>
+  <style>
+    /* ── Police moderne depuis Google Fonts ── */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0f172a;   /* bleu marine très sombre */
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    /* ── Barre de navigation ── */
+    nav {
+      background: rgba(15, 23, 42, 0.9);
+      border-bottom: 1px solid #1e3a5f;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+
+    nav .logo { font-size: 1.5rem; }
+    nav h1 { font-size: 1.1rem; font-weight: 700; color: #38bdf8; }
+    nav .badge {
+      margin-left: auto;
+      background: #1e3a5f;
+      color: #7dd3fc;
+      font-size: 0.72rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    /* ── Corps principal ── */
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+    }
+
+    /* ── Titre héro ── */
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .hero .icon { font-size: 4rem; margin-bottom: 1rem; }
+    .hero h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+    .hero p { color: #94a3b8; font-size: 1rem; }
+
+    /* ── Cartes d'état ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .card:hover { transform: translateY(-3px); border-color: #38bdf8; }
+
+    .card .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+    .card .card-icon { font-size: 1.4rem; }
+    .card h3 { font-size: 0.95rem; font-weight: 700; color: #cbd5e1; }
+
+    .status-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      background: #64748b; /* gris = inconnu */
+      animation: pulse 2s infinite;
+    }
+    .status-dot.ok  { background: #22c55e; } /* vert = OK   */
+    .status-dot.err { background: #ef4444; background-animation: none; } /* rouge = erreur */
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    .card .value {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85rem;
+      color: #7dd3fc;
+      word-break: break-all;
+    }
+    .card .label { font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem; }
+
+    /* ── Bouton ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      color: #fff;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.65rem 1.4rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn:hover   { opacity: 0.88; transform: scale(1.03); }
+    .btn:active  { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Zone de réponse API ── */
+    .response-box {
+      background: #0f172a;
+      border: 1px solid #1e3a5f;
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-top: 1.5rem;
+    }
+    .response-box h4 { font-size: 0.8rem; color: #475569; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    .response-box pre {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.82rem;
+      color: #86efac;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* ── Schéma architecture ── */
+    .arch {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-top: 2rem;
+    }
+    .arch h3 { font-size: 0.9rem; color: #94a3b8; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    .arch-diagram {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      color: #7dd3fc;
+      line-height: 1.8;
+    }
+
+    footer { text-align: center; padding: 2rem; color: #475569; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════ NAVIGATION ══════════════════ -->
+  <nav>
+    <span class="logo">🐳</span>
+    <h1>Docker Swarm — Demo Stack</h1>
+    <span class="badge">Éducatif</span>
+  </nav>
+
+  <!-- ══════════════════ CONTENU PRINCIPAL ══════════════════ -->
+  <main>
+
+    <!-- Héro -->
+    <div class="hero">
+      <div class="icon">⚙️</div>
+      <h2>Stack en cours d'exécution</h2>
+      <p>Cette page est servie par <strong>Nginx</strong> (reverse proxy) · L'API tourne sur <strong>Node.js</strong> · Cache <strong>Redis</strong></p>
+    </div>
+
+    <!-- Cartes d'état des services -->
+    <div class="cards">
+
+      <!-- Carte : Nginx -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">🔀</span>
+          <h3>Reverse Proxy (Nginx)</h3>
+        </div>
+        <div class="label">Rôle</div>
+        <div class="value">Sert le front-end et redirige<br>/api/* → service API interne</div>
+      </div>
+
+      <!-- Carte : API Node.js — le statut sera mis à jour dynamiquement -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">🟢</span>
+          <h3>API Node.js</h3>
+        </div>
+        <div class="label">Santé du service</div>
+        <div class="value" id="api-status">
+          <span class="status-dot" id="api-dot"></span>
+          <span id="api-status-text">Vérification…</span>
+        </div>
+      </div>
+
+      <!-- Carte : Redis -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">🔴</span>
+          <h3>Redis (Cache)</h3>
+        </div>
+        <div class="label">Connectivité</div>
+        <div class="value" id="redis-status">
+          <span class="status-dot" id="redis-dot"></span>
+          <span id="redis-status-text">Vérification…</span>
+        </div>
+      </div>
+
+    </div><!-- /cards -->
+
+    <!-- Bouton d'appel API -->
+    <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+      <button class="btn" id="btn-hello" onclick="callApi('/api/hello')">
+        📡 Appeler /api/hello
+      </button>
+      <button class="btn" id="btn-health" onclick="callApi('/api/health')">
+        💓 Appeler /api/health
+      </button>
+    </div>
+
+    <!-- Zone de réponse -->
+    <div class="response-box">
+      <h4>Réponse de l'API</h4>
+      <pre id="api-response">Cliquez sur un bouton pour envoyer une requête…</pre>
+    </div>
+
+    <!-- Schéma architecture texte -->
+    <div class="arch">
+      <h3>Architecture de la stack</h3>
+      <div class="arch-diagram">
+        <pre>
+  Navigateur
+      │
+      ▼  port 80 (exposé)
+  ┌─────────────┐
+  │    Nginx    │  ← service "frontend"
+  │ (proxy)     │     replica : 1
+  └──────┬──────┘
+         │  réseau overlay "app-net"
+         │  /api/*  →  http://api:3000
+         ▼
+  ┌─────────────┐
+  │  Node.js    │  ← service "api"
+  │  API        │     replica : 2  (load-balanced)
+  └──────┬──────┘
+         │  redis:6379  (nom DNS interne)
+         ▼
+  ┌─────────────┐
+  │   Redis     │  ← service "redis"
+  │  (cache)    │     NON exposé à l'extérieur
+  └─────────────┘
+        </pre>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>Projet éducatif Docker Swarm · stack.yml tutorial</footer>
+
+  <!-- ══════════════════ JAVASCRIPT ══════════════════ -->
+  <script>
+    /**
+     * Appelle l'endpoint /api/health au chargement
+     * pour afficher l'état des services dans les cartes.
+     */
+    async function checkHealth() {
+      try {
+        const res  = await fetch('/api/health');
+        const data = await res.json();
+
+        // Mise à jour carte API
+        document.getElementById('api-dot').classList.add('ok');
+        document.getElementById('api-status-text').textContent = 'OK — ' + data.service;
+
+        // Mise à jour carte Redis
+        const redisDot  = document.getElementById('redis-dot');
+        const redisText = document.getElementById('redis-status-text');
+        if (data.redis === 'OK') {
+          redisDot.classList.add('ok');
+          redisText.textContent = 'Connecté — PONG reçu';
+        } else {
+          redisDot.classList.add('err');
+          redisText.textContent = 'Erreur : ' + data.redis;
+        }
+      } catch (err) {
+        document.getElementById('api-status-text').textContent = 'Inaccessible';
+        document.getElementById('api-dot').classList.add('err');
+        document.getElementById('redis-status-text').textContent = 'Inconnu';
+      }
+    }
+
+    /**
+     * Appelle un endpoint de l'API et affiche la réponse
+     * dans la zone de réponse (JSON formaté).
+     */
+    async function callApi(endpoint) {
+      const box = document.getElementById('api-response');
+      box.textContent = 'Chargement…';
+      try {
+        const res  = await fetch(endpoint);
+        const data = await res.json();
+        // Formatage JSON pour la lisibilité
+        box.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        box.textContent = '❌ Erreur : ' + err.message;
+      }
+    }
+
+    // Vérification automatique au chargement de la page
+    checkHealth();
+  </script>
+
+</body>
+</html>

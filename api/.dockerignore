@@ -1,0 +1,8 @@
+# ─────────────────────────────────────────────────────────────
+#  .dockerignore  —  Fichiers à exclure du contexte de build
+#  (à placer dans chaque dossier de service)
+# ─────────────────────────────────────────────────────────────
+node_modules
+npm-debug.log
+.env
+*.md
